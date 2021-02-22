@@ -1,0 +1,21 @@
+<databaseChangeLog  
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"  
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="new_address" author="jorryt">
+      <addColumn tableName="customer" >
+        <column name="new_address"
+          type="varchar(255)">  
+          <constraints nullable="true" />  
+        </column>
+      </addColumn>
+    </changeSet>
+
+    <changeSet id="new_address_upd" author="jorryt">
+      <update tableName='customer'>
+        <column name="new_address" valueComputed="c_street_1"/>
+      </update>
+    </changeSet>
+</databaseChangeLog>
