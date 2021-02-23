@@ -331,5 +331,6 @@ dmypy.json
 .prof
 
 **/*.ora
-
+lib/
+**/*.jar
 # End of https://www.toptal.com/developers/gitignore/api/python,intellij+all,pycharm+all,linux,macos

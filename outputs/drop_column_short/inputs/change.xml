@@ -5,7 +5,7 @@
 
     <changeSet id="drop_column" author="jorryt">
         <dropColumn tableName="orders">
-            <column name="O_ALL_LOCAL_COPY" />
+            <column name="O_ALL_LOCAL" />
         </dropColumn>
     </changeSet>
 </databaseChangeLog>

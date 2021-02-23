@@ -3,9 +3,9 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
 
-    <changeSet id="drop-column-new_address" author="jorryt">
-        <dropColumn tableName="customer">
-            <column name="new_address" />
+    <changeSet id="drop_column" author="jorryt">
+        <dropColumn tableName="orders">
+            <column name="O_ALL_LOCAL_COPY" />
         </dropColumn>
     </changeSet>
 </databaseChangeLog>
