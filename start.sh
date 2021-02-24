@@ -69,7 +69,7 @@ fi
 
 PREREQUISITES_FILE=`find $INPUT_DIR -name prerequisites.* | head -n 1`
 COMMAND_SUFFIX=""
-if [ ! -z "$PREREQUISITES_FILE " ]; then
+if [ ! -z "$PREREQUISITES_FILE" ]; then
 	COMMAND_SUFFIX="-p $PREREQUISITES_FILE"
 fi
 

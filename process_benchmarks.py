@@ -77,8 +77,10 @@ def get_latency_matrices(data):
         transposed = convert_to_numbers(transposed)
         
         # check if last has NaN, remove whole row if so
-        if transposed.iloc[-1].isna().any():
+        while transposed.iloc[-1].isna().any():
             transposed = transposed.iloc[:-1]
+
+        transposed.index.name = 'ts'
         return transposed
     
     plots = dict()
@@ -143,18 +145,24 @@ def plot_throughput(start_time, migration_start_time, migration_stop_time, matri
 class Benchmark:
     """Class for keeping track of different details of a single benchmark run."""
     latencies: dict
-    throughputs: dict
+    throughputs: pd.DataFrame
     throughput_counts: pd.DataFrame # perhaps change this to a dict too, this holds the Oracle TX count
     details: pd.DataFrame
     phases: pd.DataFrame
     rampup_time: int = field(init=False)
     start_time: int = field(init=False)
-    migration_start_time: int = field(init=False)
-    migration_stop_time: int = field(init=False)
+    migration_margin_start_time: int = field(init=False)
+    migration_margin_stop_time: int = field(init=False)
     warehouses: int = field(init=False)
     virtual_users: int = field(init=False)
     has_migrations: bool = field(init=False)
-        
+    throughput_computed_rates: pd.DataFrame = field(init=False)
+
+    # compute the delta for two transaction counts and divide by 2 (because each log statement is also a transaction)
+    @staticmethod
+    def __tx_delta__(x):
+        return (x.iloc[-1] - x.iloc[0]) // 2
+
     def __post_init__(self):
         self.rampup_time = int(self.phases.loc['rampup'].ts)
         self.start_time = int(self.phases.loc['benchmark'].ts)
@@ -164,28 +172,62 @@ class Benchmark:
 
         mig_phase = pd.to_numeric(self.details.loc['has_migration_phase'].value)
 
-        if mig_phase == 1:
+        self.throughput_computed_rates = self.throughput_counts.rolling(60).apply(self.__tx_delta__)
+
+        self.has_migrations = mig_phase == 1
+        if self.has_migrations:
             num_ts = pd.to_numeric(self.phases["ts"])
             min_ts = int(num_ts.min())
             max_ts = int(num_ts.max())
 
             # take it with some margin if possible
             self.migration_start_time = self.phases.loc['premigration'].ts
-            if self.migration_start_time > min_ts + phase_margin:
-                self.migration_start_time -= phase_margin
+            self.migration_margin_start_time = self.migration_start_time
+            if self.migration_margin_start_time > min_ts + phase_margin:
+                self.migration_margin_start_time -= phase_margin
 
             self.migration_stop_time = self.phases.loc['postmigration'].ts
-            if self.migration_stop_time < max_ts - phase_margin:
-                self.migration_stop_time += phase_margin
+            self.migration_margin_stop_time = self.migration_stop_time
+            if self.migration_margin_stop_time < max_ts - phase_margin:
+                self.migration_margin_stop_time += phase_margin
         else:
             self.migration_start_time = None
             self.migration_stop_time = None
+            self.migration_margin_start_time = None
+            self.migration_margin_stop_time = None
             
     def plot_latencies(self, procedure_name):
         return plot_latencies(self.start_time, self.migration_start_time, self.migration_stop_time, procedure_name, self.latencies[procedure_name])
     
     def plot_throughputs(self):
         return plot_throughput(self.start_time, self.migration_start_time, self.migration_stop_time, self.throughputs)
+
+    def __get_for_phase__(self, df, phase):
+        p = self.phases
+        phase_ts = p.loc[phase].ts
+        boundaries = p[p.ts >= phase_ts].ts.head(2)  # best effort select
+        is_last_phase = len(boundaries) == 1
+        min_bound = boundaries[0] - phase_margin  # add some secs margin
+
+        closest_match = df.index.searchsorted(min_bound)
+        # closest_match_ts = df.iloc[closest_match].name
+        # assert(abs(closest_match_ts - min_bound) < 40)
+        if is_last_phase:
+            return df.iloc[closest_match:]
+        else:
+            max_bound = boundaries[1] + phase_margin  # add some secs margin
+            closest_phase_end_match = df.index.searchsorted(max_bound)
+            # closest_phase_end_match_ts = df.iloc[closest_phase_end_match].name
+            # assert(abs(closest_phase_end_match_ts - max_bound) < 40)
+            return df.iloc[closest_match:closest_phase_end_match]
+
+
+    def get_throughput_rates_for_phase(self, procedure, phase):
+        return self.__get_for_phase__(self.throughputs[procedure], phase)
+
+
+    def get_latencies_for_phase(self, procedure, phase):
+        return self.__get_for_phase__(self.latencies[procedure], phase)
 
 
 def read_benchmark(base_dir, name):
@@ -230,6 +272,7 @@ def read_benchmark(base_dir, name):
     result = Benchmark(latency_matrices, throughput_matrices, throughput_count, details, phases)
     return result
 
+
 if __name__ == "__main__":
     benchmark_names = sys.argv[1:]
     base_dir = Path.cwd() / "outputs"
@@ -260,8 +303,36 @@ if __name__ == "__main__":
 
         tp = b.plot_throughputs()
         tp.savefig("%s/throughputs.svg" % charts_path)
+        tp.close()
 
-        for n in procedure_names:
-            p = b.plot_latencies(n)
-            print("Saving figure %s" % n)
-            p.savefig("%s/%s" % (charts_path, n))
+        baseline_throughputs = dict()
+        migration_throughputs = dict()
+        baseline_latencies = dict()
+        migration_latencies = dict()
+        for t in procedure_names:
+            p = b.plot_latencies(t)
+            p.savefig("%s/%s" % (charts_path, t.lower()))
+
+            baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
+            migration_throughputs[t] = b.get_throughput_rates_for_phase(t, 'premigration')
+            baseline_latencies[t] = b.get_latencies_for_phase(t, 'benchmark')
+            migration_latencies[t] = b.get_latencies_for_phase(t, 'premigration')
+            p.close()
+
+
+        # print("Baseline for %s" % n)
+        # for x in procedure_names:
+        #     print(baseline_latencies[x].describe())
+        print("Baseline for %s" % n)
+        print(baseline_throughputs['NEWORD'].describe())
+        print("Migration for %s" % n)
+        print(migration_throughputs['NEWORD'].describe())
+
+        # print("Baseline latencies")
+        # print(baseline_latencies)
+        # print("Migration latencies")
+        # print(migration_latencies)
+        # print("Baseline throughputs")
+        # print(baseline_throughputs)
+        # print("Migration throughputs")
+        # print(migration_throughputs)
