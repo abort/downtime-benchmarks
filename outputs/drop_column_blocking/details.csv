@@ -1,19 +1,19 @@
 property,value
-rampup_time,10
+liquibase,/home/abort/projects/benchmarks/liquibase
 has_migration_phase,1
-liquibase,/home/abort/Downloads/liquibase
-run_name,drop_column_blocking
-output_dir,outputs
-pre_migration_time,10
 prerequisite_changelog,inputs/drop_column_blocking/prerequisites.xml
-keep_schema,0
+output_dir,outputs
+rampup_time,10
 migration_changelog,inputs/drop_column_blocking/change.xml
 post_migration_time,10
-schema_users,16
 recreate_tablespace,0
-warehouses,40
+pre_migration_time,10
+run_name,drop_column_blocking
+schema_users,16
 liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+warehouses,40
+keep_schema,0
 load_users,64
-timestamp,1614092057
-timestamp_human,2021-02-23 14:54:17.205006+00:00
+timestamp,1614167901
+timestamp_human,2021-02-24 11:58:21.412397+00:00
 db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb
