@@ -1,0 +1,15 @@
+<databaseChangeLog  
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"  
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="new_fk" author="jorryt">
+        <addForeignKeyConstraint
+            baseColumnNames="O_W_ID,O_D_ID,O_C_ID"
+            baseTableName="orders"
+            constraintName="fk_orders_customer"
+            referencedColumnNames="C_W_ID,C_D_ID,C_ID"
+            referencedTableName="customer"
+            validate="true"/>
+    </changeSet>
+</databaseChangeLog>
