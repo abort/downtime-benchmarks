@@ -1,0 +1,19 @@
+property,value
+rampup_time,10
+warehouses,40
+run_name,drop_fk_online
+liquibase,/home/abort/projects/benchmarks/liquibase
+schema_users,16
+migration_changelog,inputs/drop_fk_online/change.xml
+recreate_tablespace,0
+pre_migration_time,10
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+post_migration_time,10
+has_migration_phase,1
+output_dir,outputs
+keep_schema,0
+load_users,64
+prerequisite_changelog,inputs/drop_fk_online/prerequisites.xml
+timestamp,1614250709
+timestamp_human,2021-02-25 10:58:29.306572+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb

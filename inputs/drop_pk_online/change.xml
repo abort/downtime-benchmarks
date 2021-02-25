@@ -1,0 +1,11 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <property name="auto-online-ddl" value="true"/>
+
+    <changeSet id="drop_pk" author="jorryt">
+        <dropPrimaryKey constraintName="pk_orders" tableName="orders" dropIndex="false"/>
+    </changeSet>
+</databaseChangeLog>
