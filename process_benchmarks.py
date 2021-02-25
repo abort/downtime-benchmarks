@@ -180,7 +180,7 @@ class Benchmark:
             min_ts = int(num_ts.min())
             max_ts = int(num_ts.max())
 
-            # take it with some margin if possible
+            # take it with some margin if possible due to some possible accuracy deviations
             self.migration_start_time = self.phases.loc['premigration'].ts
             self.migration_margin_start_time = self.migration_start_time
             if self.migration_margin_start_time > min_ts + phase_margin:
@@ -197,10 +197,10 @@ class Benchmark:
             self.migration_margin_stop_time = None
             
     def plot_latencies(self, procedure_name):
-        return plot_latencies(self.start_time, self.migration_start_time, self.migration_stop_time, procedure_name, self.latencies[procedure_name])
+        return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, self.latencies[procedure_name])
     
     def plot_throughputs(self):
-        return plot_throughput(self.start_time, self.migration_start_time, self.migration_stop_time, self.throughputs)
+        return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs)
 
     def __get_for_phase__(self, df, phase):
         p = self.phases
@@ -323,10 +323,14 @@ if __name__ == "__main__":
         # print("Baseline for %s" % n)
         # for x in procedure_names:
         #     print(baseline_latencies[x].describe())
-        print("Baseline for %s" % n)
+        print("Baseline TPM (NEWORD) for %s" % n)
         print(baseline_throughputs['NEWORD'].describe())
-        print("Migration for %s" % n)
+        print("Migration TPM (NEWORD) for %s" % n)
         print(migration_throughputs['NEWORD'].describe())
+        print("Baseline Latencies (NEWORD) for %s" % n)
+        print(baseline_latencies['NEWORD'].describe())
+        print("Migration Latencies (NEWORD) for %s" % n)
+        print(migration_latencies['NEWORD'].describe())
 
         # print("Baseline latencies")
         # print(baseline_latencies)
