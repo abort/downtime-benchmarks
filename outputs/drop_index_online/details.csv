@@ -1,0 +1,19 @@
+property,value
+run_name,drop_index_online
+keep_schema,0
+schema_users,16
+liquibase,/home/abort/projects/benchmarks/liquibase
+rampup_time,10
+migration_changelog,inputs/drop_index_online/change.xml
+load_users,64
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+post_migration_time,10
+prerequisite_changelog,inputs/drop_index_online/prerequisites.xml
+has_migration_phase,1
+output_dir,outputs
+recreate_tablespace,0
+warehouses,40
+pre_migration_time,10
+timestamp,1614273798
+timestamp_human,2021-02-25 17:23:18.504477+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb
