@@ -1,0 +1,25 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    
+  <changeSet id="rename_table_orders_synonym" author="Jorryt">    
+    <preConditions> 
+      <dbms type="oracle"/> 
+    </preConditions>      
+    <sql>
+      CREATE PUBLIC SYNONYM orders FOR tpcc.my_order
+    </sql>
+    <rollback>
+      <sql>DROP PUBLIC SYNONYM orders</sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="rename_table_orders_intermediate" author="Jorryt">
+      <preConditions> 
+        <dbms type="oracle"/> 
+      </preConditions>
+      <sql>alter session set ddl_lock_timeout=300</sql>
+      <renameTable oldTableName="orders" newTableName="my_order" />
+  </changeSet>
+</databaseChangeLog>
