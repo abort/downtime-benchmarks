@@ -13,15 +13,6 @@
   </changeSet>
 
 
-  <changeSet id="add_upd_trigger" author="Jorryt">
-    <sql dbms="oracle" endDelimiter="/">
-        CREATE TRIGGER all_local_to_local_upd BEFORE UPDATE OF O_ALL_LOCAL_NEW ON orders FOR EACH ROW
-        BEGIN
-          :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
-        END;
-    </sql>      
-  </changeSet>
-
   <changeSet id="add_backward_upd_trigger" author="Jorryt">
     <sql dbms="oracle" endDelimiter="/">
         CREATE TRIGGER local_to_all_local_upd BEFORE UPDATE OF O_ALL_LOCAL ON orders FOR EACH ROW
@@ -45,8 +36,26 @@
   </changeSet>
 
   <changeSet id="sync_data" author="Jorryt">
-      <update tableName="orders">
+<!--       <update tableName="orders">
         <column name="O_ALL_LOCAL_NEW" valueComputed="O_ALL_LOCAL"/>
-      </update>
+      </update> -->
+
+      <customChange class="liquibase.ext.changes.BatchMigrationChange">
+          <param name="tableName" value="orders" />
+          <param name="fromColumns" value="O_ALL_LOCAL" />
+          <param name="toColumns" value="O_ALL_LOCAL_NEW" />
+          <param name="chunkSize" value="20000" />
+          <param name="primaryKeyColumns" value="O_W_ID, O_D_ID, O_ID" />
+      </customChange>
   </changeSet>
+
+
+  <changeSet id="add_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER all_local_to_local_upd BEFORE UPDATE OF O_ALL_LOCAL_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
+        END;
+    </sql>      
+  </changeSet>  
 </databaseChangeLog>

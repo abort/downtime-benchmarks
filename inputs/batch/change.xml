@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="migrate" author="jorryt">
+        <customChange class="liquibase.ext.changes.BatchMigrationChange">
+            <param name="tableName" value="cst" />
+            <param name="fromColumns" value="c_phone" />
+            <param name="toColumns" value="c_phone_new" />
+            <param name="chunkSize" value="10000" />
+            <param name="primaryKeyColumns" value="C_W_ID, C_D_ID, C_ID" />
+        </customChange>
+    </changeSet>
+</databaseChangeLog>
