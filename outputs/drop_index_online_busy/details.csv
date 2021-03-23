@@ -1,0 +1,19 @@
+property,value
+rampup_time,10
+warehouses,40
+run_name,drop_index_online_busy
+schema_users,16
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+migration_changelog,inputs/drop_index_online_busy/change.xml
+prerequisite_changelog,
+pre_migration_time,10
+liquibase,/home/abort/projects/benchmarks/liquibase
+recreate_tablespace,0
+has_migration_phase,1
+post_migration_time,10
+output_dir,outputs
+keep_schema,0
+load_users,64
+timestamp,1616502849
+timestamp_human,2021-03-23 12:34:09.791506+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb

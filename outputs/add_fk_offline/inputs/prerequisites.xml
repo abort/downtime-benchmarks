@@ -1,0 +1,13 @@
+<databaseChangeLog  
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"  
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="new_pk" author="jorryt">
+        <addPrimaryKey
+            columnNames="C_W_ID,C_D_ID,C_ID"
+            constraintName="pk_customer"
+            tableName="customer"  
+            validate="true"/>
+    </changeSet>
+</databaseChangeLog>

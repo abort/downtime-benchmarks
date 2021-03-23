@@ -1,0 +1,28 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    
+  <!-- This example requires to GRANT rights to TPCC user (you can do this easily by doing so before the migration using sqlcl) -->
+
+  <changeSet id="rename_table_orders_intermediate" author="Jorryt">
+      <preConditions> 
+        <dbms type="oracle"/> 
+      </preConditions>
+      <sql>alter session set ddl_lock_timeout=300</sql>
+      <renameTable oldTableName="orders" newTableName="my_order" />
+  </changeSet>
+
+  <!-- to simulate -->
+  <changeSet id="rename_table_orders_synonym" author="Jorryt">
+    <preConditions> 
+      <dbms type="oracle"/> 
+    </preConditions>      
+    <sql>
+      CREATE SYNONYM tpcc.orders FOR tpcc.my_order
+    </sql>
+    <rollback>
+      <sql>DROP SYNONYM tpcc.orders</sql>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

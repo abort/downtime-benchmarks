@@ -1,0 +1,98 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    
+
+  <changeSet id="add_column" author="Jorryt">
+    <sql>alter session set ddl_lock_timeout=300</sql>    
+    <addColumn tableName="order_line" >
+      <column name="OL_W_ID_NEW" type="number">
+        <constraints nullable="true" />
+      </column>
+      <column name="OL_D_ID_NEW" type="number">
+        <constraints nullable="true" />
+      </column>
+      <column name="OL_O_ID_NEW" type="number">
+        <constraints nullable="true" />
+      </column>
+      <column name="OL_NUMBER_NEW" type="number">
+        <constraints nullable="true" />
+      </column>            
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="add_backward_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER new_upd BEFORE UPDATE OF OL_W_ID ON order_line FOR EACH ROW
+        BEGIN
+          :new.OL_W_ID_NEW := :new.OL_W_ID;
+          :new.OL_D_ID_NEW := :new.OL_D_ID;
+          :new.OL_O_ID_NEW := :new.OL_O_ID;
+          :new.OL_NUMBER_NEW := :new.OL_NUMBER;
+        END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="add_insert_trigger" author="Jorryt">    
+    <sql dbms="oracle" endDelimiter="/">
+      CREATE TRIGGER order_line_insert BEFORE INSERT ON order_line FOR EACH ROW
+      BEGIN
+      if (:new.OL_W_ID_NEW is null) then
+          :new.OL_W_ID_NEW := :new.OL_W_ID;
+          :new.OL_D_ID_NEW := :new.OL_D_ID;
+          :new.OL_O_ID_NEW := :new.OL_O_ID;
+          :new.OL_NUMBER_NEW := :new.OL_NUMBER;
+      else
+          :new.OL_W_ID := :new.OL_W_ID_NEW;
+          :new.OL_D_ID := :new.OL_D_ID_NEW;
+          :new.OL_O_ID := :new.OL_O_ID_NEW;
+          :new.OL_NUMBER := :new.OL_NUMBER_NEW;
+      end if;
+      END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="sync_data" author="Jorryt">
+      <customChange class="liquibase.ext.changes.BatchMigrationChange">
+          <param name="tableName" value="order_line" />
+          <param name="fromColumns" value="OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER" />
+          <param name="toColumns" value="OL_W_ID_NEW,OL_D_ID_NEW,OL_O_ID_NEW,OL_NUMBER_NEW" />
+          <param name="chunkSize" value="100" />
+      </customChange>
+  </changeSet>
+
+
+  <changeSet id="add_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER new_upd_reverse_1 BEFORE UPDATE OF OL_W_ID_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.OL_W_ID := :new.OL_W_ID_NEW;
+        END;
+    </sql>
+  </changeSet>
+  <changeSet id="add_upd_trigger_2" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER new_upd_reverse_2 BEFORE UPDATE OF OL_D_ID_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.OL_D_ID := :new.OL_D_ID_NEW;
+        END;
+    </sql>
+  </changeSet>
+  <changeSet id="add_upd_trigger_3" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER new_upd_reverse_3 BEFORE UPDATE OF OL_O_ID_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.OL_O_ID := :new.OL_W_ID_NEW;
+        END;
+    </sql>
+  </changeSet>
+  <changeSet id="add_upd_trigger_4" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER new_upd_reverse_4 BEFORE UPDATE OF OL_NUMBER_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.OL_NUMBER := :new.OL_NUMBER_NEW;
+        END;
+    </sql>
+  </changeSet>
+</databaseChangeLog>
