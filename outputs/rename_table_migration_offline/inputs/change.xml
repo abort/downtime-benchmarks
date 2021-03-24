@@ -19,10 +19,10 @@
       <dbms type="oracle"/> 
     </preConditions>      
     <sql>
-      CREATE SYNONYM orders FOR tpcc.my_order
+      CREATE SYNONYM tpcc.orders FOR tpcc.my_order
     </sql>
     <rollback>
-      <sql>DROP SYNONYM orders</sql>
+      <sql>DROP SYNONYM tpcc.orders</sql>
     </rollback>
   </changeSet>
 </databaseChangeLog>

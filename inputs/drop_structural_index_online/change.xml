@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <property name="auto-online-ddl" value="true"/>
+
+    <changeSet id="drop-index-original" author="jorryt">
+    	<sql>alter session set ddl_lock_timeout=300</sql>
+        <dropIndex tableName="orders" indexName="ORDERS_I1"/>
+    </changeSet>
+
+    <changeSet id="drop-index-original-2" author="jorryt">
+    	<sql>alter session set ddl_lock_timeout=300</sql>
+        <dropIndex tableName="orders" indexName="ORDERS_I2"/>
+    </changeSet>
+</databaseChangeLog>
