@@ -1,0 +1,108 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    
+
+
+    <changeSet id="preclean" author="Jorryt" failOnError="false" runAlways="true">
+        <sql endDelimiter="/">
+            BEGIN
+            DBMS_REDEFINITION.ABORT_REDEF_TABLE('tpcc', 'ORDERS', 'ORDERS_AUX', NULL);
+            EXCEPTION
+            WHEN OTHERS THEN
+            /* Ignore errors */
+            NULL;
+            END;
+        </sql>
+        <dropTable tableName="ORDERS_AUX" />
+    </changeSet>
+
+  <changeSet id="create_aux_table" author="Jorryt">
+    <sql endDelimiter="/">
+      CREATE TABLE ORDERS_AUX (O_ID NUMBER, O_W_ID NUMBER, O_D_ID NUMBER, O_C_ID NUMBER, O_CARRIER_ID NUMBER, O_OL_CNT NUMBER, O_ALL_LOCAL NUMBER, O_ENTRY_D DATE, O_ALL_LOCAL_NEW NUMBER) INITRANS 4 PCTFREE 10
+    </sql>
+  </changeSet>
+
+   <changeSet id="swap_columns" author="Jorryt">
+        <sql>alter session set ddl_lock_timeout=300</sql>
+        <sql endDelimiter="/">
+            DECLARE
+            num_errors PLS_INTEGER;
+            start_redef_e EXCEPTION;
+            copy_dep_e EXCEPTION;
+            PRAGMA exception_init(start_redef_e, -204);
+            PRAGMA exception_init(copy_dep_e, -204);
+            BEGIN
+              dbms_redefinition.start_redef_table('TPCC', 'ORDERS', 'ORDERS_AUX', 'O_ID O_ID, O_W_ID O_W_ID, O_D_ID O_D_ID, O_C_ID O_C_ID, O_CARRIER_ID O_CARRIER_ID, O_OL_CNT O_OL_CNT, O_ALL_LOCAL O_ALL_LOCAL, O_ENTRY_D O_ENTRY_D, O_ALL_LOCAL O_ALL_LOCAL_NEW', dbms_redefinition.CONS_USE_ROWID);
+
+              dbms_redefinition.copy_table_dependents('TPCC', 'ORDERS', 'ORDERS_AUX', 1, true, true, true, false, num_errors, true, true);
+              if num_errors > 0 then
+                RAISE copy_dep_e;
+              end if;
+            END;
+        </sql>
+        <rollback>
+            BEGIN
+            DBMS_REDEFINITION.ABORT_REDEF_TABLE('TPCC', 'ORDERS', 'ORDERS_AUX', NULL);
+            END;
+        </rollback>
+    </changeSet>
+
+  <changeSet id="add_backward_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER local_to_all_local_new_upd BEFORE UPDATE OF O_ALL_LOCAL ON ORDERS_AUX FOR EACH ROW
+        BEGIN
+          :new.O_ALL_LOCAL_NEW := :new.O_ALL_LOCAL;
+        END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="add_insert_trigger" author="Jorryt">    
+    <sql dbms="oracle" endDelimiter="/">
+      CREATE TRIGGER order_insert BEFORE INSERT ON ORDERS_AUX FOR EACH ROW
+      BEGIN
+      if (:new.O_ALL_LOCAL_NEW is null) then
+        :new.O_ALL_LOCAL_NEW := :new.O_ALL_LOCAL;
+      else
+        :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
+      end if;
+      END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="add_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER all_local_to_local_upd BEFORE UPDATE OF O_ALL_LOCAL_NEW ON ORDERS_AUX FOR EACH ROW
+        BEGIN
+          :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
+        END;
+    </sql>      
+  </changeSet>
+
+  <changeSet id="sync_data" author="Jorryt">
+    <sql endDelimiter="/">
+        BEGIN
+        dbms_redefinition.sync_interim_table('tpcc', 'ORDERS', 'ORDERS_AUX', NULL, false);
+        END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="finish_redef" author="Jorryt">
+      <sql endDelimiter="/">
+          BEGIN
+          dbms_redefinition.finish_redef_table('tpcc', 'ORDERS', 'ORDERS_AUX', NULL, NULL, false);
+          END;
+      </sql>
+      <rollback>
+          BEGIN
+          DBMS_REDEFINITION.ABORT_REDEF_TABLE('tpcc', 'ORDERS', 'ORDERS_AUX', NULL);
+          END;
+      </rollback>
+  </changeSet>
+
+  <!-- after migration this can be removed -->
+  <changeSet id="postclean" author="Jorryt" failOnError="false">
+      <dropTable tableName="ORDERS_AUX" cascadeConstraints="true"/>
+  </changeSet>
+</databaseChangeLog>
