@@ -44,7 +44,7 @@
           <param name="tableName" value="orders" />
           <param name="fromColumns" value="O_ALL_LOCAL" />
           <param name="toColumns" value="O_ALL_LOCAL_NEW" />
-          <param name="chunkSize" value="1000" />
+          <param name="chunkSize" value="250" />
       </customChange>
   </changeSet>
 
