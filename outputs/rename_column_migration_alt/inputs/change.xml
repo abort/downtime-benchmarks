@@ -4,7 +4,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
     
 
-
+    <!-- requires grant for dbms_redefinition -->
     <changeSet id="preclean" author="Jorryt" failOnError="false" runAlways="true">
         <sql endDelimiter="/">
             BEGIN
@@ -102,7 +102,7 @@
   </changeSet>
 
   <!-- after migration this can be removed -->
-  <changeSet id="postclean" author="Jorryt" failOnError="false">
+<!--   <changeSet id="postclean" author="Jorryt" failOnError="false">
       <dropTable tableName="ORDERS_AUX" cascadeConstraints="true"/>
-  </changeSet>
+  </changeSet> -->
 </databaseChangeLog>
