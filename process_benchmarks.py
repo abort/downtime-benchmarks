@@ -171,7 +171,6 @@ class Benchmark:
         self.virtual_users = int(self.details.loc['load_users'].value)
 
         mig_phase = pd.to_numeric(self.details.loc['has_migration_phase'].value)
-
         self.throughput_computed_rates = self.throughput_counts.rolling(60).apply(self.__tx_delta__)
 
         self.has_migrations = mig_phase == 1
@@ -314,9 +313,11 @@ if __name__ == "__main__":
             p.savefig("%s/%s" % (charts_path, t.lower()))
 
             baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
-            migration_throughputs[t] = b.get_throughput_rates_for_phase(t, 'premigration')
+            if b.has_migrations:
+            	migration_throughputs[t] = b.get_throughput_rates_for_phase(t, 'premigration')
+            	migration_latencies[t] = b.get_latencies_for_phase(t, 'premigration')
+
             baseline_latencies[t] = b.get_latencies_for_phase(t, 'benchmark')
-            migration_latencies[t] = b.get_latencies_for_phase(t, 'premigration')
             p.close()
 
 
@@ -325,12 +326,14 @@ if __name__ == "__main__":
         #     print(baseline_latencies[x].describe())
         print("Baseline TPM (NEWORD) for %s" % n)
         print(baseline_throughputs['NEWORD'].describe())
-        print("Migration TPM (NEWORD) for %s" % n)
-        print(migration_throughputs['NEWORD'].describe())
+        if b.has_migrations:
+        	print("Migration TPM (NEWORD) for %s" % n)
+        	print(migration_throughputs['NEWORD'].describe())
         print("Baseline Latencies (NEWORD) for %s" % n)
         print(baseline_latencies['NEWORD'].describe())
-        print("Migration Latencies (NEWORD) for %s" % n)
-        print(migration_latencies['NEWORD'].describe())
+        if b.has_migrations:
+        	print("Migration Latencies (NEWORD) for %s" % n)
+        	print(migration_latencies['NEWORD'].describe())
 
         # print("Baseline latencies")
         # print(baseline_latencies)
