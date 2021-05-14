@@ -1,0 +1,19 @@
+property,value
+schema_users,16
+recreate_tablespace,0
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+has_migration_phase,1
+output_dir,outputs
+prerequisite_changelog,
+rampup_time,10
+post_migration_time,10
+warehouses,40
+load_users,64
+run_name,modify_datatype
+pre_migration_time,10
+liquibase,/home/abort/projects/benchmarks/liquibase
+keep_schema,0
+migration_changelog,inputs/modify_datatype/change.xml
+timestamp,1620996733
+timestamp_human,2021-05-14 12:52:13.690376+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb

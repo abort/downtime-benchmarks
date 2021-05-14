@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="modify_data_type" author="jorryt">
+		<sql>alter session set ddl_lock_timeout=300</sql>
+        <modifyDataType  columnName="OL_DIST_INFO"  newDataType="char(100)"  tableName="order_line"/>  
+    </changeSet>
+</databaseChangeLog>
