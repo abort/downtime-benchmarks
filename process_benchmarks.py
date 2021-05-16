@@ -88,7 +88,7 @@ def get_latency_matrices(data):
         plots[c] = compute_latency_matrix(c)
     return plots
 
-def set_time_formatter(axis, second_dispersion):  
+def set_time_formatter(axis, second_dispersion):
     def time_ticks(x, pos):
         d = timedelta(seconds=x)
         return str(d)    
@@ -106,11 +106,12 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
         kw = dict(xycoords='data',textcoords="axes fraction",
                   arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
         ax.annotate(text, xy=(xmax, ymax), xytext=(0.20,0.96), **kw)
-    
+
     ax = matrix.plot(x_compat=True)
     plt.yscale('log')
-    set_time_formatter(ax.xaxis, 120)
+    set_time_formatter(ax.xaxis, 300)
     ax.yaxis.set_major_locator(tckr.LogLocator())
+    plt.ylim(pow(10,3), pow(10,7))
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:
         plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
@@ -128,7 +129,7 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
     
 def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix):
     ax = matrix.plot(x_compat=True)
-    set_time_formatter(ax.xaxis, 120)
+    set_time_formatter(ax.xaxis, 300)
     ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5)
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:    
@@ -305,7 +306,7 @@ if __name__ == "__main__":
         b = read_benchmark(str(base_dir.resolve()), n)
 
         tp = b.plot_throughputs()
-        tp.savefig("%s/throughputs.svg" % charts_path)
+        tp.savefig("%s/throughputs.pdf" % charts_path, bbox_inches = 'tight', pad_inches = 0)
         tp.close()
 
         baseline_throughputs = dict()
@@ -314,7 +315,7 @@ if __name__ == "__main__":
         migration_latencies = dict()
         for t in procedure_names:
             p = b.plot_latencies(t, simple = True)
-            p.savefig("%s/%s.svg" % (charts_path, t.lower()))
+            p.savefig("%s/%s.pdf" % (charts_path, t.lower()), bbox_inches = 'tight', pad_inches = 0)
 
             baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
             if b.has_migrations:
