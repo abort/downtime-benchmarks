@@ -17,7 +17,7 @@ from pathlib import Path
 
 # Constants
 phase_margin = 10  # we take a margin of X seconds for periods to draw them
-plt.rcParams['figure.figsize'] = [25, 20]
+plt.rcParams['figure.figsize'] = [25, 15]
 procedure_names = ["NEWORD", "PAYMENT", "DELIVERY", "SLEV", "OSTAT"]
 non_numbers = ['Property', 'Procedure']
 def convert_to_numbers(df, exceptions = non_numbers):
@@ -121,7 +121,8 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
     ax.set_xlabel("Time passed in minutes")
     ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5)
 
-    annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
+    if 'MAX' in matrix:
+        annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
     plt.title('%s Latencies' % procedure_name)
     return plt
     
@@ -195,8 +196,11 @@ class Benchmark:
             self.migration_margin_start_time = None
             self.migration_margin_stop_time = None
             
-    def plot_latencies(self, procedure_name):
-        return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, self.latencies[procedure_name])
+    def plot_latencies(self, procedure_name, simple = False):
+        matrix = self.latencies[procedure_name]
+        matrix = matrix[['P50', 'P95']] if simple else matrix
+
+        return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, matrix)
     
     def plot_throughputs(self):
         return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs)
@@ -309,8 +313,8 @@ if __name__ == "__main__":
         baseline_latencies = dict()
         migration_latencies = dict()
         for t in procedure_names:
-            p = b.plot_latencies(t)
-            p.savefig("%s/%s" % (charts_path, t.lower()))
+            p = b.plot_latencies(t, simple = True)
+            p.savefig("%s/%s.svg" % (charts_path, t.lower()))
 
             baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
             if b.has_migrations:
