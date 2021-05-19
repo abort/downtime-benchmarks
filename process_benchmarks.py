@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.ticker as tckr
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib
 from matplotlib.dates import DateFormatter, date2num
 from dataclasses import dataclass, field
 import numpy as np
@@ -14,12 +15,21 @@ from os import path
 import sys
 from glob import glob
 from pathlib import Path
+import seaborn as sns
+
 
 # Constants
 phase_margin = 10  # we take a margin of X seconds for periods to draw them
 plt.rcParams['figure.figsize'] = [25, 15]
 procedure_names = ["NEWORD", "PAYMENT", "DELIVERY", "SLEV", "OSTAT"]
 non_numbers = ['Property', 'Procedure']
+
+matplotlib.use('Agg')
+plt.ioff()
+sns.set_theme()
+sns.set_style('whitegrid')
+
+
 def convert_to_numbers(df, exceptions = non_numbers):
     cols = [i for i in df.columns if i not in exceptions]
     for col in cols:
@@ -34,12 +44,11 @@ def read_percentiles(file):
 
     def convert_to_relative_time(data):
         timestamps = [ datetime.strptime(x, '%H:%M:%S') for x in list(data.columns.values[1:]) ]
-        tuples = zip(timestamps[1:], timestamps) # assert len(list(tuples)) == len(timestamps) - 1
+        tuples = zip(timestamps[1:], timestamps)
         delta = [ int((a - b).total_seconds()) for a, b in tuples ]
         delta = [0] + delta
         timeline = list(itertools.accumulate(delta, lambda x, y: x + y))
-        data.columns.values[1:] = timeline
-        return data
+        return data.rename(columns = dict(zip(data.columns.values[1:], timeline)))
         
     data = pd.read_csv(file, sep='\t', skiprows=1)
     data.drop(data.columns[len(data.columns)-1], axis=1, inplace=True)
@@ -47,7 +56,13 @@ def read_percentiles(file):
     
     # remove segment rows
     data = data[~data['Property'].isin(procedure_names)]
+
     data = convert_to_numbers(annotate_procedure_names(convert_to_relative_time(data)))
+
+    # drop trailing measurements that resulted in no value
+    # while data[data.columns[-1]].isnull().values.all():
+    #     data = data.drop(data.columns[-1], axis=1)
+
     return data
     
 def read_throughputs(file):
@@ -93,25 +108,29 @@ def set_time_formatter(axis, second_dispersion):
         d = timedelta(seconds=x)
         return str(d)    
     
+    axis.set_minor_locator(tckr.MultipleLocator(60))
     axis.set_major_formatter(tckr.FuncFormatter(time_ticks))
     axis.set_major_locator(plt.MultipleLocator(second_dispersion))
 
-def plot_latencies(start_time, migration_start_time, migration_stop_time, procedure_name, matrix):
+def plot_latencies(start_time, migration_start_time, migration_stop_time, procedure_name, matrix, min_y = None, max_y = None):
     def annot_max(xmax, ymax, ax = None):
         text= "{:.2e}µs".format(ymax)
         if not ax:
-            ax=plt.gca()
+            ax = plt.gca()
         bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
-        arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
+        arrowprops = dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
         kw = dict(xycoords='data',textcoords="axes fraction",
                   arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
         ax.annotate(text, xy=(xmax, ymax), xytext=(0.20,0.96), **kw)
 
-    ax = matrix.plot(x_compat=True)
+    ax = matrix.plot(x_compat=True, color = ['b', 'orange', 'r'])
     plt.yscale('log')
+    ax.margins(0.005, 0)
+
     set_time_formatter(ax.xaxis, 300)
     ax.yaxis.set_major_locator(tckr.LogLocator())
-    plt.ylim(pow(10,3), pow(10,7))
+    if min_y and max_y:
+        plt.ylim(min_y, max_y)
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:
         plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
@@ -122,22 +141,28 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
     ax.set_xlabel("Time passed in minutes")
     ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5)
 
-    if 'MAX' in matrix:
-        annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
+    # if 'MAX' in matrix:
+    #     annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
     plt.title('%s Latencies' % procedure_name)
     return plt
-    
-def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix):
-    ax = matrix.plot(x_compat=True)
+
+def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix, min_y = None, max_y = None):
+    ax = matrix.plot(x_compat = False)
     set_time_formatter(ax.xaxis, 300)
-    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5)
+    ax.grid(color='b', alpha=0.2, linestyle='--', linewidth=0.1, which='minor')
+    ax.margins(0.0, 0)
+
+    if min_y and max_y:
+        plt.ylim(min_y, max_y)
+
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:    
         plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
-        
+
     if migration_stop_time:        
         plt.axvline(x = migration_stop_time, linewidth=1, color='b', linestyle='--')
 
+    plt.tick_params(axis='y', direction='out', length=3, width=3)
     ax.set_ylabel("Throughput in TPM")
     ax.set_xlabel("Time passed in minutes")
     plt.title("Throughput")
@@ -197,14 +222,14 @@ class Benchmark:
             self.migration_margin_start_time = None
             self.migration_margin_stop_time = None
             
-    def plot_latencies(self, procedure_name, simple = False):
+    def plot_latencies(self, procedure_name, simple = False, min_y = None, max_y = None):
         matrix = self.latencies[procedure_name]
-        matrix = matrix[['P50', 'P95']] if simple else matrix
+        matrix = matrix[['P50', 'P95', 'P99']] if simple else matrix
 
-        return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, matrix)
+        return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, matrix, min_y, max_y)
     
-    def plot_throughputs(self):
-        return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs)
+    def plot_throughputs(self, min_y = None, max_y = None):
+        return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs, min_y, max_y)
 
     def __get_for_phase__(self, df, phase):
         p = self.phases
@@ -265,7 +290,6 @@ def read_benchmark(base_dir, name):
         print("Measurement phases not found" % phases_f)
         return None
 
-
     latency_matrices = get_latency_matrices(read_percentiles(percentiles_f))
     throughputs = read_throughputs(throughput_f)
     throughput_matrices = get_throughput_matrices(throughputs)
@@ -287,10 +311,15 @@ if __name__ == "__main__":
         benchmark_names = [ Path(b).relative_to(base_dir) for b in benchmark_names ]
 
     print("Processing %d benchmarks in %s" % (len(benchmark_names), base_dir))
+
+    benchmark_data = dict()
+
+    # create nenecessary directories
     for n in benchmark_names:
         full_path = base_dir / n
         if not full_path.exists() or not full_path.is_dir():
-            print("%s is not a results directory" % full_path)
+            print("%s is not a results directory, skipping %s" % (full_path, n))
+            benchmark_data[n] = None
             continue
 
         charts_path = os.path.join(full_path, "charts")
@@ -298,53 +327,78 @@ if __name__ == "__main__":
             os.mkdir(charts_path)
 
             if not os.path.exists(charts_path):
-                print("Could not create directory %s" % charts_path)
-                exit(1)
+                print("Could not create directory %s, skipping %s" % (charts_path, n))
+                benchmark_data[n] = None
+                continue
 
+        benchmark_data[n] = read_benchmark(str(base_dir.resolve()), n)
 
-        print("Processing: %s" % n)
-        b = read_benchmark(str(base_dir.resolve()), n)
+    # find extremes to plot nicely
+    lat_min = dict()
+    lat_max = dict()
+    thr_min = None
+    thr_max = None
+    for b in benchmark_data.values():
+        for p in procedure_names:
+            
+            # remove first and last 10s if possible, to make sure we have a full window of measurements
+            lat = b.latencies[p]
+            if len(lat) > 2:
+                lat = lat[2:-1]
 
-        tp = b.plot_throughputs()
+            # we take the highest value
+            mx = lat['P99'].max()
+            # we take the lowest value
+            mn = lat['P50'].min()
+            if p not in lat_min:
+                lat_min[p] = mn
+                lat_max[p] = mx
+            else:
+                if mn < lat_min[p]:
+                   lat_min[p] = mn
+                if mx > lat_max[p]:
+                   lat_max[p] = mx
+
+        # we plot all throughputs together, so we just want the minimum from the minima of each
+        mn = b.throughputs.min().min()
+        mx = b.throughputs.max().max()
+        if not thr_min or mn < thr_min:
+            thr_min = mn
+        if not thr_max or mx > thr_max:
+            thr_max = mx
+
+    for n, b in benchmark_data.items():
+        full_path = base_dir / n
+        charts_path = os.path.join(full_path, "charts")
+
+        tp = b.plot_throughputs(min_y = thr_min, max_y = thr_max)
         tp.savefig("%s/throughputs.pdf" % charts_path, bbox_inches = 'tight', pad_inches = 0)
         tp.close()
 
-        baseline_throughputs = dict()
-        migration_throughputs = dict()
-        baseline_latencies = dict()
-        migration_latencies = dict()
+        # baseline_throughputs = dict()
+        # migration_throughputs = dict()
+        # baseline_latencies = dict()
+        # migration_latencies = dict()
         for t in procedure_names:
-            p = b.plot_latencies(t, simple = True)
+            p = b.plot_latencies(t, simple = True, min_y = lat_min[t], max_y = lat_max[t])
             p.savefig("%s/%s.pdf" % (charts_path, t.lower()), bbox_inches = 'tight', pad_inches = 0)
 
-            baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
-            if b.has_migrations:
-            	migration_throughputs[t] = b.get_throughput_rates_for_phase(t, 'premigration')
-            	migration_latencies[t] = b.get_latencies_for_phase(t, 'premigration')
+            # baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
+            # if b.has_migrations:
+            #   migration_throughputs[t] = b.get_throughput_rates_for_phase(t, 'premigration')
+            #   migration_latencies[t] = b.get_latencies_for_phase(t, 'premigration')
 
-            baseline_latencies[t] = b.get_latencies_for_phase(t, 'benchmark')
+            # baseline_latencies[t] = b.get_latencies_for_phase(t, 'benchmark')
             p.close()
 
 
-        # print("Baseline for %s" % n)
-        # for x in procedure_names:
-        #     print(baseline_latencies[x].describe())
-        print("Baseline TPM (NEWORD) for %s" % n)
-        print(baseline_throughputs['NEWORD'].describe())
-        if b.has_migrations:
-        	print("Migration TPM (NEWORD) for %s" % n)
-        	print(migration_throughputs['NEWORD'].describe())
-        print("Baseline Latencies (NEWORD) for %s" % n)
-        print(baseline_latencies['NEWORD'].describe())
-        if b.has_migrations:
-        	print("Migration Latencies (NEWORD) for %s" % n)
-        	print(migration_latencies['NEWORD'].describe())
-
-        # print("Baseline latencies")
-        # print(baseline_latencies)
-        # print("Migration latencies")
-        # print(migration_latencies)
-        # print("Baseline throughputs")
-        # print(baseline_throughputs)
-        # print("Migration throughputs")
-        # print(migration_throughputs)
+        # print("Baseline TPM (NEWORD) for %s" % n)
+        # print(baseline_throughputs['NEWORD'].describe())
+        # if b.has_migrations:
+        #   print("Migration TPM (NEWORD) for %s" % n)
+        #   print(migration_throughputs['NEWORD'].describe())
+        # print("Baseline Latencies (NEWORD) for %s" % n)
+        # print(baseline_latencies['NEWORD'].describe())
+        # if b.has_migrations:
+        #   print("Migration Latencies (NEWORD) for %s" % n)
+        #   print(migration_latencies['NEWORD'].describe())
