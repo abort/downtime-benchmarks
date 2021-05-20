@@ -1,0 +1,60 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    
+
+  <changeSet id="add_column" author="Jorryt">
+    <addColumn tableName="orders" >
+      <column name="O_ALL_LOCAL_NEW" type="number">
+        <constraints nullable="true" />  
+      </column>
+    </addColumn>
+  </changeSet>
+
+
+  <changeSet id="add_backward_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER local_to_all_local_new_upd BEFORE UPDATE OF O_ALL_LOCAL ON orders FOR EACH ROW
+        BEGIN
+          :new.O_ALL_LOCAL_NEW := :new.O_ALL_LOCAL;
+        END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="add_insert_trigger" author="Jorryt">    
+    <sql dbms="oracle" endDelimiter="/">
+      CREATE TRIGGER order_insert BEFORE INSERT ON orders FOR EACH ROW
+      BEGIN
+      if (:new.O_ALL_LOCAL_NEW is null) then
+        :new.O_ALL_LOCAL_NEW := :new.O_ALL_LOCAL;
+      else
+        :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
+      end if;
+      END;
+    </sql>
+  </changeSet>
+
+  <changeSet id="sync_data" author="Jorryt">
+<!--       <update tableName="orders">
+        <column name="O_ALL_LOCAL_NEW" valueComputed="O_ALL_LOCAL"/>
+      </update> -->
+
+      <customChange class="liquibase.ext.changes.BatchMigrationChange">
+          <param name="tableName" value="orders" />
+          <param name="fromColumns" value="O_ALL_LOCAL" />
+          <param name="toColumns" value="O_ALL_LOCAL_NEW" />
+          <param name="chunkSize" value="5000" />
+      </customChange>
+  </changeSet>
+
+
+  <changeSet id="add_upd_trigger" author="Jorryt">
+    <sql dbms="oracle" endDelimiter="/">
+        CREATE TRIGGER all_local_to_local_upd BEFORE UPDATE OF O_ALL_LOCAL_NEW ON orders FOR EACH ROW
+        BEGIN
+          :new.O_ALL_LOCAL := :new.O_ALL_LOCAL_NEW;
+        END;
+    </sql>      
+  </changeSet>  
+</databaseChangeLog>

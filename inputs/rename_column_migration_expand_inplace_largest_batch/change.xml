@@ -15,11 +15,11 @@
 
   <changeSet id="add_backward_upd_trigger" author="Jorryt">
     <sql dbms="oracle" endDelimiter="/">
-        CREATE TRIGGER local_to_all_local_upd BEFORE UPDATE OF O_ALL_LOCAL ON orders FOR EACH ROW
+        CREATE TRIGGER local_to_all_local_new_upd BEFORE UPDATE OF O_ALL_LOCAL ON orders FOR EACH ROW
         BEGIN
           :new.O_ALL_LOCAL_NEW := :new.O_ALL_LOCAL;
         END;
-    </sql>      
+    </sql>
   </changeSet>
 
   <changeSet id="add_insert_trigger" author="Jorryt">    
@@ -44,8 +44,7 @@
           <param name="tableName" value="orders" />
           <param name="fromColumns" value="O_ALL_LOCAL" />
           <param name="toColumns" value="O_ALL_LOCAL_NEW" />
-          <param name="chunkSize" value="20000" />
-          <param name="primaryKeyColumns" value="O_W_ID, O_D_ID, O_ID" />
+          <param name="chunkSize" value="1500" />
       </customChange>
   </changeSet>
 

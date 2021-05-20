@@ -1,0 +1,19 @@
+property,value
+post_migration_time,10
+output_dir,outputs
+prerequisite_changelog,
+keep_schema,0
+schema_users,16
+migration_changelog,inputs/rename_column_migration_expand_inplace_huge_batch/change.xml
+warehouses,40
+has_migration_phase,1
+recreate_tablespace,0
+load_users,64
+pre_migration_time,10
+rampup_time,10
+liquibase,/home/abort/projects/benchmarks/liquibase
+run_name,rename_column_migration_expand_inplace_huge_batch
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+timestamp,1621515658
+timestamp_human,2021-05-20 13:00:58.246281+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb

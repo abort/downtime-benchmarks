@@ -1,5 +1,6 @@
 #!/bin/python
 import pandas as pd
+import math
 from datetime import datetime, timedelta
 import itertools
 import seaborn as sns
@@ -123,14 +124,17 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
                   arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
         ax.annotate(text, xy=(xmax, ymax), xytext=(0.20,0.96), **kw)
 
-    ax = matrix.plot(x_compat=True, color = ['b', 'orange', 'r'])
+    ax = matrix.plot(x_compat=True, color = ['b', 'orange', 'r'], linestyle = 'solid')
     plt.yscale('log')
-    ax.margins(0.005, 0)
+    ax.margins(0, 0)
 
     set_time_formatter(ax.xaxis, 300)
     ax.yaxis.set_major_locator(tckr.LogLocator())
     if min_y and max_y:
         plt.ylim(min_y, max_y)
+        ax.yaxis.set_tick_params(which='minor', reset=False)
+        # plt.yticks(np.arange(min_y, max_y, (max_y - min_y) // 3))
+
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:
         plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
@@ -146,14 +150,15 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
     plt.title('%s Latencies' % procedure_name)
     return plt
 
-def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix, min_y = None, max_y = None):
+def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix, max_y = None):
     ax = matrix.plot(x_compat = False)
     set_time_formatter(ax.xaxis, 300)
     ax.grid(color='b', alpha=0.2, linestyle='--', linewidth=0.1, which='minor')
     ax.margins(0.0, 0)
-
-    if min_y and max_y:
-        plt.ylim(min_y, max_y)
+    if max_y:
+        plt.ylim(top = max_y)
+        ax.yaxis.set_tick_params(which='minor', reset=False)
+        plt.yticks(np.arange(0, max_y, 5000))
 
     plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
     if migration_start_time:    
@@ -162,7 +167,7 @@ def plot_throughput(start_time, migration_start_time, migration_stop_time, matri
     if migration_stop_time:        
         plt.axvline(x = migration_stop_time, linewidth=1, color='b', linestyle='--')
 
-    plt.tick_params(axis='y', direction='out', length=3, width=3)
+    # plt.tick_params(axis='y', direction='out', length=3, width=3)
     ax.set_ylabel("Throughput in TPM")
     ax.set_xlabel("Time passed in minutes")
     plt.title("Throughput")
@@ -224,12 +229,12 @@ class Benchmark:
             
     def plot_latencies(self, procedure_name, simple = False, min_y = None, max_y = None):
         matrix = self.latencies[procedure_name]
-        matrix = matrix[['P50', 'P95', 'P99']] if simple else matrix
+        matrix = matrix[['P50', 'P95', 'MAX']] if simple else matrix
 
         return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, matrix, min_y, max_y)
     
-    def plot_throughputs(self, min_y = None, max_y = None):
-        return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs, min_y, max_y)
+    def plot_throughputs(self, max_y = None):
+        return plot_throughput(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, self.throughputs, max_y)
 
     def __get_for_phase__(self, df, phase):
         p = self.phases
@@ -262,7 +267,7 @@ class Benchmark:
 def read_benchmark(base_dir, name):
     if not path.exists(base_dir):
         print("Base directory %s not found" % base_dir)
-        return
+        return None
 
 
     directory = os.path.join(base_dir, name)
@@ -290,16 +295,19 @@ def read_benchmark(base_dir, name):
         print("Measurement phases not found" % phases_f)
         return None
 
-    latency_matrices = get_latency_matrices(read_percentiles(percentiles_f))
-    throughputs = read_throughputs(throughput_f)
-    throughput_matrices = get_throughput_matrices(throughputs)
-    throughput_count = throughputs[['total_tx']]
-    details = read_details(details_f)
-    phases = read_phases(phases_f)
-    
-    result = Benchmark(latency_matrices, throughput_matrices, throughput_count, details, phases)
-    return result
-
+    try:
+        latency_matrices = get_latency_matrices(read_percentiles(percentiles_f))
+        throughputs = read_throughputs(throughput_f)
+        throughput_matrices = get_throughput_matrices(throughputs)
+        throughput_count = throughputs[['total_tx']]
+        details = read_details(details_f)
+        phases = read_phases(phases_f)
+        
+        result = Benchmark(latency_matrices, throughput_matrices, throughput_count, details, phases)
+        return result
+    except Exception as e:
+        print("Failed to retrieve data: ", e)
+        return None
 
 if __name__ == "__main__":
     benchmark_names = sys.argv[1:]
@@ -331,12 +339,15 @@ if __name__ == "__main__":
                 benchmark_data[n] = None
                 continue
 
-        benchmark_data[n] = read_benchmark(str(base_dir.resolve()), n)
+        benchmark = read_benchmark(str(base_dir.resolve()), n)
+        if benchmark: 
+            benchmark_data[n] = benchmark
+        else:
+            print("Skipping %s" % n)
 
     # find extremes to plot nicely
     lat_min = dict()
     lat_max = dict()
-    thr_min = None
     thr_max = None
     for b in benchmark_data.values():
         for p in procedure_names:
@@ -347,7 +358,7 @@ if __name__ == "__main__":
                 lat = lat[2:-1]
 
             # we take the highest value
-            mx = lat['P99'].max()
+            mx = lat['MAX'].max()
             # we take the lowest value
             mn = lat['P50'].min()
             if p not in lat_min:
@@ -360,18 +371,21 @@ if __name__ == "__main__":
                    lat_max[p] = mx
 
         # we plot all throughputs together, so we just want the minimum from the minima of each
-        mn = b.throughputs.min().min()
-        mx = b.throughputs.max().max()
-        if not thr_min or mn < thr_min:
-            thr_min = mn
+        throughputs = b.throughputs
+
+        mx = throughputs.max().max()
         if not thr_max or mx > thr_max:
             thr_max = mx
+
+    # make sure that minimum and maximum are nicely logarithmic
+    lat_min = { k: 10**int(math.log(v, 10)) for k, v in lat_min.items() }
+    lat_max = { k: 10**int(math.ceil(math.log(v, 10))) for k, v in lat_max.items() }
 
     for n, b in benchmark_data.items():
         full_path = base_dir / n
         charts_path = os.path.join(full_path, "charts")
 
-        tp = b.plot_throughputs(min_y = thr_min, max_y = thr_max)
+        tp = b.plot_throughputs(max_y = thr_max)
         tp.savefig("%s/throughputs.pdf" % charts_path, bbox_inches = 'tight', pad_inches = 0)
         tp.close()
 
