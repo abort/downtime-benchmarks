@@ -143,7 +143,7 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
 
     ax.set_ylabel("Latency in µs")
     ax.set_xlabel("Time passed in minutes")
-    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5)
+    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5, which='minor')
 
     # if 'MAX' in matrix:
     #     annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
@@ -153,7 +153,7 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
 def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix, max_y = None):
     ax = matrix.plot(x_compat = False)
     set_time_formatter(ax.xaxis, 300)
-    ax.grid(color='b', alpha=0.2, linestyle='--', linewidth=0.1, which='minor')
+    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5, which='minor')
     ax.margins(0.0, 0)
     if max_y:
         plt.ylim(top = max_y)
@@ -229,7 +229,7 @@ class Benchmark:
             
     def plot_latencies(self, procedure_name, simple = False, min_y = None, max_y = None):
         matrix = self.latencies[procedure_name]
-        matrix = matrix[['P50', 'P95', 'MAX']] if simple else matrix
+        matrix = matrix[['P50', 'P99', 'MAX']] if simple else matrix
 
         return plot_latencies(self.start_time, self.migration_margin_start_time, self.migration_margin_stop_time, procedure_name, matrix, min_y, max_y)
     

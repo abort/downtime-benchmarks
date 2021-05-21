@@ -1,0 +1,19 @@
+property,value
+migration_changelog,inputs/add_not_nullable_novalidate/change.xml
+rampup_time,10
+post_migration_time,10
+has_migration_phase,1
+pre_migration_time,10
+warehouses,40
+liquibase_classpath,/home/abort/Downloads/ojdbc8.jar
+load_users,64
+output_dir,outputs
+schema_users,16
+recreate_tablespace,0
+liquibase,/home/abort/projects/benchmarks/liquibase
+keep_schema,0
+prerequisite_changelog,
+run_name,add_not_nullable_novalidate
+timestamp,1621613009
+timestamp_human,2021-05-21 16:03:29.677674+00:00
+db_url,jdbc:oracle:thin:@UT145166.ad.utwente.nl:1521/pdb
