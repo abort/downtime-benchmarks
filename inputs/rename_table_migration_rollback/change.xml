@@ -1,0 +1,22 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+  
+  <changeSet id="rename_table_new_to_old" author="Jorryt">
+      <preConditions> 
+        <dbms type="oracle"/> 
+      </preConditions>
+      <sql>alter session set ddl_lock_timeout=300</sql>
+      <renameTable oldTableName="my_order" newTableName="orders" />
+  </changeSet>
+
+  <changeSet id="drop_orders_synonym" author="Jorryt">
+    <preConditions> 
+      <dbms type="oracle"/> 
+    </preConditions>  
+    <sql>
+      DROP PUBLIC SYNONYM orders
+    </sql>
+  </changeSet>
+</databaseChangeLog>
