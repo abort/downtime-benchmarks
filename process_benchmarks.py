@@ -16,7 +16,6 @@ from os import path
 import sys
 from glob import glob
 from pathlib import Path
-import seaborn as sns
 
 
 # Constants
