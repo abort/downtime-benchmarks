@@ -17,10 +17,15 @@ import sys
 from glob import glob
 from pathlib import Path
 
-
 # Constants
+SMALL_SIZE = 14
+MEDIUM_SIZE = 16
+BIGGER_SIZE = 20
 phase_margin = 10  # we take a margin of X seconds for periods to draw them
-plt.rcParams['figure.figsize'] = [25, 15]
+
+plt.rcParams['figure.figsize'] = [25, 12]
+plt.rcParams['figure.autolayout'] = True
+
 procedure_names = ["NEWORD", "PAYMENT", "DELIVERY", "SLEV", "OSTAT"]
 non_numbers = ['Property', 'Procedure']
 
@@ -28,7 +33,27 @@ matplotlib.use('Agg')
 plt.ioff()
 sns.set_theme()
 sns.set_style('whitegrid')
+sns.set_context("paper", font_scale=2.5, rc={"lines.linewidth": 2.5})
 
+# plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+# plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+# plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+# plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+# plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=BIGGER_SIZE)    # legend fontsize
+# plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+maj_ticks = dict()
+min_ticks = dict()
+def compute_major_ticks(max_y):
+    if not max_y in maj_ticks:
+        maj_ticks[max_y] = np.arange(0, max_y, 10000)
+    return maj_ticks[max_y]
+
+def compute_minor_ticks(max_y):
+    if not max_y in min_ticks:
+        min_ticks[max_y] = np.arange(0, max_y, 5000)
+    return min_ticks[max_y]
 
 def convert_to_numbers(df, exceptions = non_numbers):
     cols = [i for i in df.columns if i not in exceptions]
@@ -106,11 +131,14 @@ def get_latency_matrices(data):
 def set_time_formatter(axis, second_dispersion):
     def time_ticks(x, pos):
         d = timedelta(seconds=x)
-        return str(d)    
-    
+        return str(int(d.seconds / 60))
+
     axis.set_minor_locator(tckr.MultipleLocator(60))
     axis.set_major_formatter(tckr.FuncFormatter(time_ticks))
     axis.set_major_locator(plt.MultipleLocator(second_dispersion))
+    axis.set_tick_params(which='minor', reset=False, direction="in", bottom=True)
+    axis.set_minor_formatter(tckr.NullFormatter())
+
 
 def plot_latencies(start_time, migration_start_time, migration_stop_time, procedure_name, matrix, min_y = None, max_y = None):
     def annot_max(xmax, ymax, ax = None):
@@ -126,50 +154,57 @@ def plot_latencies(start_time, migration_start_time, migration_stop_time, proced
     ax = matrix.plot(x_compat=True, color = ['b', 'orange', 'r'], linestyle = 'solid')
     plt.yscale('log')
     ax.margins(0, 0)
-
+    ax.minorticks_on()
     set_time_formatter(ax.xaxis, 300)
     ax.yaxis.set_major_locator(tckr.LogLocator())
     if min_y and max_y:
         plt.ylim(min_y, max_y)
         ax.yaxis.set_tick_params(which='minor', reset=False)
-        # plt.yticks(np.arange(min_y, max_y, (max_y - min_y) // 3))
 
-    plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
+
+    plt.axvline(x = start_time, linewidth=2, color='r', linestyle='--')
     if migration_start_time:
-        plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
+        plt.axvline(x = migration_start_time, linewidth=2, color='g', linestyle='--')
     if migration_stop_time:
-        plt.axvline(x = migration_stop_time, linewidth=1, color='b', linestyle='--')
+        plt.axvline(x = migration_stop_time, linewidth=2, color='b', linestyle='--')
 
     ax.set_ylabel("Latency in µs")
     ax.set_xlabel("Time passed in minutes")
-    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5, which='minor')
+    #ax.grid(color='b', alpha=0.8, linestyle='dashed', linewidth=0.5, which='minor')
 
     # if 'MAX' in matrix:
     #     annot_max(matrix['MAX'].idxmax(), matrix['MAX'].max(), ax)
-    plt.title('%s Latencies' % procedure_name)
+    # plt.title('%s Latencies' % procedure_name)
     return plt
 
 def plot_throughput(start_time, migration_start_time, migration_stop_time, matrix, max_y = None):
     ax = matrix.plot(x_compat = False)
     set_time_formatter(ax.xaxis, 300)
-    ax.grid(color='b', alpha=0.2, linestyle='dashed', linewidth=0.5, which='minor')
-    ax.margins(0.0, 0)
+    #ax.grid(color='b', alpha=0.8, linestyle='dashed', linewidth=0.5, which='minor')
+    ax.margins(0, 0)
+    ax.minorticks_on()
+
     if max_y:
         plt.ylim(top = max_y)
-        ax.yaxis.set_tick_params(which='minor', reset=False)
-        plt.yticks(np.arange(0, max_y, 5000))
+        # ax.yaxis.set_tick_params(which='minor', reset=False)
+        # ax.set_yticks(compute_major_ticks(max_y))
+        # ax.set_yticks(compute_minor_ticks(max_y), minor=True)
+        ax.yaxis.set_minor_formatter(tckr.NullFormatter())
+        ax.yaxis.set_minor_locator(tckr.MultipleLocator(2000))
+        ax.yaxis.set_tick_params(which='minor', left = 'true', right='off', direction="inout", reset=False)
+        ax.yaxis.set_major_locator(tckr.MultipleLocator(10000))
 
-    plt.axvline(x = start_time, linewidth=1, color='r', linestyle='--')
+    plt.axvline(x = start_time, linewidth=2, color='r', linestyle='--')
     if migration_start_time:    
-        plt.axvline(x = migration_start_time, linewidth=1, color='g', linestyle='--')
+        plt.axvline(x = migration_start_time, linewidth=2, color='g', linestyle='--')
 
     if migration_stop_time:        
-        plt.axvline(x = migration_stop_time, linewidth=1, color='b', linestyle='--')
+        plt.axvline(x = migration_stop_time, linewidth=2, color='b', linestyle='--')
 
     # plt.tick_params(axis='y', direction='out', length=3, width=3)
-    ax.set_ylabel("Throughput in TPM")
+    ax.set_ylabel("Transactions per minute")
     ax.set_xlabel("Time passed in minutes")
-    plt.title("Throughput")
+    # plt.title("Throughput")
     return plt
 
 @dataclass
@@ -385,7 +420,7 @@ if __name__ == "__main__":
         charts_path = os.path.join(full_path, "charts")
 
         tp = b.plot_throughputs(max_y = thr_max)
-        tp.savefig("%s/throughputs.pdf" % charts_path, bbox_inches = 'tight', pad_inches = 0)
+        tp.savefig("%s/throughputs.pdf" % charts_path, bbox_inches = 'tight', pad_inches = 0.05)
         tp.close()
 
         # baseline_throughputs = dict()
@@ -394,7 +429,7 @@ if __name__ == "__main__":
         # migration_latencies = dict()
         for t in procedure_names:
             p = b.plot_latencies(t, simple = True, min_y = lat_min[t], max_y = lat_max[t])
-            p.savefig("%s/%s.pdf" % (charts_path, t.lower()), bbox_inches = 'tight', pad_inches = 0)
+            p.savefig("%s/%s.pdf" % (charts_path, t.lower()), bbox_inches = 'tight', pad_inches = 0.05)
 
             # baseline_throughputs[t] = b.get_throughput_rates_for_phase(t, 'benchmark')
             # if b.has_migrations:
